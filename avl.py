@@ -76,17 +76,21 @@ class BinaryTree:
         balancing_factor_p = parent.right_height - parent.left_height
         balancing_factor_c = child.right_height - child.left_height
         if balancing_factor_p <= -2:
+            print("rotacao em ", parent.value)
             if balancing_factor_c >= 1:
                 # se o desbalanceamento estiver para dentro, realiza duas
                 # rotacoes (child e parent)
                 child = self.left_rotate(child)
             parent = self.right_rotate(parent)
+            return
         elif balancing_factor_p >= 2:
+            print("rotacao em ", parent.value)
             if balancing_factor_c <= -1:
                 # se desbalanceamento estiver dentro, realiza duas
                 # rotacoes (child e parent)
                 child = self.right_rotate(child)
             parent = self.left_rotate(parent)
+            return
         if parent.parent != None:
             self.balancing(parent, parent.parent)
         else:
@@ -129,7 +133,7 @@ class BinaryTree:
 
 def main():
     tree = BinaryTree()
-    array = [20, 33, 5, 9, 3, 2, 56]
+    array = [20, 33, 5, 9, 3, 2, 56, 71]
     for elem in array:
         tree.insert_elem(BinaryElem(elem))
     print("In Order")
