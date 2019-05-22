@@ -29,29 +29,34 @@ class BinaryTree:
 
     def fix_height(self, child, parent):
         # Consertar alturas do filho e pai
-        l_h = child.left_child.left_height
-        r_h = child.left_child.right_height
+        l_h = child.left_child.left_height if child.left_child != None else 0
+        r_h = child.left_child.right_height if child.left_child != None else 0
         # somando 1 a maior altura dos filhos depois da rotacao
         child.left_height = 1 + (l_h if l_h >= r_h else r_h)
-        l_h = child.right_child.left_height
-        r_h = child.right_child.right_height
+        l_h = child.right_child.left_height if child.right_child != None else 0
+        r_h = child.right_child.right_height if child.right_child != None else 0
         child.right_height = 1 + (l_h if l_h >= r_h else r_h)
 
-        l_h = parent.left_child.left_height
-        r_h = parent.left_child.right_height
+        l_h = parent.left_child.left_height if parent.left_child != None else 0
+        r_h = parent.left_child.right_height if parent.left_child != None else 0
         parent.left_height = 1 + (l_h if l_h >= r_h else r_h)
-        l_h = parent.right_child.left_height
-        r_h = parent.right_child.right_height
+        l_h = parent.right_child.left_height if parent.right_child != None else 0
+        r_h = parent.right_child.right_height if parent.right_child != None else 0
         parent.right_height = 1 + (l_h if l_h >= r_h else r_h)
 
     def left_rotate(self, elem):
+        grand_parent = elem.parent
+        print("grand = ", grand_parent.value)
         new_parent = elem.right_child
         new_child = new_parent.left_child
         new_parent.left_child = elem
-        new_parent.parent = elem.parent
+        new_parent.parent = grand_parent
         elem.right_child = new_child
-        elem.parent = new_parent
-        return new_parent
+        grand_parent = new_parent
+        grand_parent.right_child = new_parent  # atualiza para o novo parent
+
+        self.fix_height(elem, new_parent)
+        return elem
 
     def right_rotate(self, elem):
         new_parent = elem.left_child
@@ -71,32 +76,33 @@ class BinaryTree:
             parent.left_height += 1
         if parent.right_height == parent.left_height:
             # se as alturas forem iguais, então não vão afetar
-            # a altura dos nós anteriories
+            # a altura dos nós anteriores
             return
         balancing_factor_p = parent.right_height - parent.left_height
         balancing_factor_c = child.right_height - child.left_height
         if balancing_factor_p <= -2:
-            print("rotacao em ", parent.value)
             if balancing_factor_c >= 1:
                 # se o desbalanceamento estiver para dentro, realiza duas
                 # rotacoes (child e parent)
-                child = self.left_rotate(child)
+                self.left_rotate(child)
             parent = self.right_rotate(parent)
-            return
+            print("rotacao p:", parent.value, " c:", parent.right_child.value)
+            return parent
         elif balancing_factor_p >= 2:
-            print("rotacao em ", parent.value)
             if balancing_factor_c <= -1:
                 # se desbalanceamento estiver dentro, realiza duas
                 # rotacoes (child e parent)
-                child = self.right_rotate(child)
+                self.right_rotate(child)
             parent = self.left_rotate(parent)
-            return
+            # print("rotacao p:", parent.value, " c:", parent.left_child.value)
+            return parent
         if parent.parent != None:
-            self.balancing(parent, parent.parent)
+            return self.balancing(parent, parent.parent)
         else:
             # atualiza a raiz
             print("new = ", parent.value)
             self.root = parent
+        return parent
 
     def insert_elem(self, elem):
         if isinstance(elem, BinaryElem):
@@ -105,10 +111,10 @@ class BinaryTree:
             if parent != None:
                 if elem.value > parent.value:
                     parent.right_child = elem
-                    self.balancing(elem, parent)
+                    parent = self.balancing(elem, parent)
                 else:
                     parent.left_child = elem
-                    self.balancing(elem, parent)
+                    parent = self.balancing(elem, parent)
             else:
                 # elem adicionado é a raiz se não houver outros elementos
                 self.root = elem
