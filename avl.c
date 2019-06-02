@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 struct tree
 {
@@ -18,7 +19,7 @@ Tree *Balacing(Tree *child, Tree *parent);
 
 int main()
 {
-    int array[] = {20, 33, 5, 9, 3, 2, 56, 71, 15, 10, 16};
+    int array[] = {20, 33, 5, 9, 3, 2, 56, 71, 15, 10, 16, 1};
     Tree *avl = NULL;
     int size = sizeof(array) / sizeof(int);
     for (int i = 0; i < size; i++)
@@ -88,26 +89,40 @@ Tree *addNode(Tree *avl, int value)
     return avl;
 }
 
-void fixHeight(Tree *child, Tree *parent)
+void fixHeight(Tree *child)
 {
+    int left_h, right_h;
     // consertar alturas do filho
-    int l_h = (child->left_child != NULL) ? child->left_child->left_height : 0;
-    int r_h = (child->left_child != NULL) ? child->left_child->right_height : 0;
-    // somando 1 a maior altura dos filhos da rotacao
-    child->left_height = 1 + ((l_h >= r_h) ? l_h : r_h);
-    printf("l_h: %d\n", child->left_height);
+    if (child->left_child != NULL)
+    {
+        left_h = child->left_child->left_height;
+        right_h = child->left_child->right_height;
+        // somando 1 a maior altura dos filhos da rotacao
+        child->left_height = 1 + ((left_h >= right_h) ? left_h : right_h);
+    }
+    else
+    {
+        child->left_height = 0;
+    }
     // lado direito do filho
-    l_h = (child->right_child != NULL) ? child->right_child->left_height : 0;
-    r_h = (child->right_child != NULL) ? child->right_child->right_height : 0;
-    child->right_height = 1 + ((l_h >= r_h) ? l_h : r_h);
+    if (child->right_child != NULL)
+    {
+        left_h = child->right_child->left_height;
+        right_h = child->right_child->right_height;
+        child->right_height = 1 + ((left_h >= right_h) ? left_h : right_h);
+    }
+    else
+    {
+        child->right_height = 0;
+    }
 
-    // consertar alturas do pai
-    l_h = (parent->left_child != NULL) ? parent->left_child->left_height : 0;
-    r_h = (parent->left_child != NULL) ? parent->left_child->right_height : 0;
-    parent->left_height = 1 + ((l_h >= r_h) ? l_h : r_h);
-    l_h = (parent->right_child != NULL) ? parent->right_child->left_height : 0;
-    r_h = (parent->right_child != NULL) ? parent->right_child->right_height : 0;
-    parent->right_height = 1 + ((l_h >= r_h) ? l_h : r_h);
+    // // consertar alturas do pai
+    // left_h = (parent->left_child != NULL) ? parent->left_child->left_height : 0;
+    // right_h = (parent->left_child != NULL) ? parent->left_child->right_height : 0;
+    // parent->left_height = 1 + ((left_h >= right_h) ? left_h : right_h);
+    // left_h = (parent->right_child != NULL) ? parent->right_child->left_height : 0;
+    // right_h = (parent->right_child != NULL) ? parent->right_child->right_height : 0;
+    // parent->right_height = 1 + ((left_h >= right_h) ? left_h : right_h);
 }
 
 Tree *leftRotate(Tree *parent)
@@ -129,7 +144,8 @@ Tree *leftRotate(Tree *parent)
         else
             grand_parent->left_child = new_parent;
     }
-    fixHeight(parent, new_parent);
+    fixHeight(parent);
+    fixHeight(new_parent);
     // retorna o novo pai
     return new_parent;
 }
@@ -153,7 +169,8 @@ Tree *rightRotate(Tree *parent)
         else
             grand_parent->left_child = new_parent;
     }
-    fixHeight(parent, new_parent);
+    fixHeight(parent);
+    fixHeight(new_parent);
     // retorna o novo pai
     return new_parent;
 }
