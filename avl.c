@@ -14,21 +14,23 @@ struct tree
 Tree *addNode(Tree *avl, int value);
 void preOrder(Tree *avl);
 void inOrder(Tree *avl);
-void Balacing(Tree *child, Tree *parent);
+Tree *Balacing(Tree *child, Tree *parent);
 
 int main()
 {
-    int array[] = {20, 33, 5, 9, 3, 2, 56, 71, 1};
+    int array[] = {20, 33, 5, 9, 3, 2, 56, 71, 15, 10, 16};
     Tree *avl = NULL;
-
-    for (int i = 0; i < 9; i++)
+    int size = sizeof(array) / sizeof(int);
+    for (int i = 0; i < size; i++)
+    {
         avl = addNode(avl, array[i]);
+    }
 
     printf("InOrder: ");
     inOrder(avl);
     printf("\n");
 
-    printf("PreOrder: ");
+    printf("PreOrder:\n");
     preOrder(avl);
     printf("\n");
 
@@ -63,7 +65,11 @@ Tree *addNode(Tree *avl, int value)
                 // adiciona no
                 aux->right_child = new_node;
                 new_node->parent = aux;
-                Balacing(new_node, aux);
+                aux = Balacing(new_node, aux);
+                // se o pai do node que foi balanceado eh nulo,
+                // entao a raiz da arvore eh atualizada
+                if (aux->parent == NULL)
+                    avl = aux;
             }
         }
         else
@@ -73,7 +79,9 @@ Tree *addNode(Tree *avl, int value)
             {
                 aux->left_child = new_node;
                 new_node->parent = aux;
-                Balacing(new_node, aux);
+                aux = Balacing(new_node, aux);
+                if (aux->parent == NULL)
+                    avl = aux;
             }
         }
     }
@@ -83,25 +91,26 @@ Tree *addNode(Tree *avl, int value)
 void fixHeight(Tree *child, Tree *parent)
 {
     // consertar alturas do filho
-    int l_h = (child->left_child) ? child->left_child->left_height : 0;
-    int r_h = (child->left_child) ? child->left_child->right_height : 0;
+    int l_h = (child->left_child != NULL) ? child->left_child->left_height : 0;
+    int r_h = (child->left_child != NULL) ? child->left_child->right_height : 0;
     // somando 1 a maior altura dos filhos da rotacao
-    child->left_height = (l_h != 0 || r_h != 0) ? (1 + ((l_h >= r_h) ? l_h : r_h)) : 0;
+    child->left_height = 1 + ((l_h >= r_h) ? l_h : r_h);
+    printf("l_h: %d\n", child->left_height);
     // lado direito do filho
-    l_h = (child->right_child) ? child->right_child->left_height : 0;
-    r_h = (child->right_child) ? child->right_child->right_height : 0;
-    child->right_height = (l_h != 0 || r_h != 0) ? (1 + ((l_h >= r_h) ? l_h : r_h)) : 0;
+    l_h = (child->right_child != NULL) ? child->right_child->left_height : 0;
+    r_h = (child->right_child != NULL) ? child->right_child->right_height : 0;
+    child->right_height = 1 + ((l_h >= r_h) ? l_h : r_h);
 
     // consertar alturas do pai
-    l_h = (parent->left_child) ? parent->left_child->left_height : 0;
-    r_h = (parent->left_child) ? parent->left_child->right_height : 0;
-    parent->left_height = (l_h != 0 || r_h != 0) ? (1 + ((l_h >= r_h) ? l_h : r_h)) : 0;
-    l_h = (parent->right_child) ? parent->right_child->left_height : 0;
-    r_h = (parent->right_child) ? parent->right_child->right_height : 0;
-    parent->right_height = (l_h != 0 || r_h != 0) ? (1 + ((l_h >= r_h) ? l_h : r_h)) : 0;
+    l_h = (parent->left_child != NULL) ? parent->left_child->left_height : 0;
+    r_h = (parent->left_child != NULL) ? parent->left_child->right_height : 0;
+    parent->left_height = 1 + ((l_h >= r_h) ? l_h : r_h);
+    l_h = (parent->right_child != NULL) ? parent->right_child->left_height : 0;
+    r_h = (parent->right_child != NULL) ? parent->right_child->right_height : 0;
+    parent->right_height = 1 + ((l_h >= r_h) ? l_h : r_h);
 }
 
-void leftRotate(Tree *parent)
+Tree *leftRotate(Tree *parent)
 {
     Tree *grand_parent = parent->parent;
     Tree *new_parent = parent->right_child;
@@ -114,11 +123,18 @@ void leftRotate(Tree *parent)
     if (new_child != NULL)
         new_child->parent = parent;
     if (grand_parent != NULL)
-        grand_parent->right_child = new_parent;
+    {
+        if (new_parent->value > grand_parent->value)
+            grand_parent->right_child = new_parent;
+        else
+            grand_parent->left_child = new_parent;
+    }
     fixHeight(parent, new_parent);
+    // retorna o novo pai
+    return new_parent;
 }
 
-void rightRotate(Tree *parent)
+Tree *rightRotate(Tree *parent)
 {
     Tree *grand_parent = parent->parent;
     Tree *new_parent = parent->left_child;
@@ -131,11 +147,18 @@ void rightRotate(Tree *parent)
     if (new_child != NULL)
         new_child->parent = parent;
     if (grand_parent != NULL)
-        grand_parent->left_child = new_parent;
+    {
+        if (new_parent->value > grand_parent->value)
+            grand_parent->right_child = new_parent;
+        else
+            grand_parent->left_child = new_parent;
+    }
     fixHeight(parent, new_parent);
+    // retorna o novo pai
+    return new_parent;
 }
 
-void Balacing(Tree *child, Tree *parent)
+Tree *Balacing(Tree *child, Tree *parent)
 {
     if (child->value > parent->value)
         parent->right_height++;
@@ -143,35 +166,39 @@ void Balacing(Tree *child, Tree *parent)
         parent->left_height++;
 
     if (parent->right_height == parent->left_height)
-        return;
+        return parent;
     int balancing_factor_p = parent->right_height - parent->left_height;
     int balancing_factor_c = child->right_height - child->left_height;
 
     if (balancing_factor_p <= -2)
     {
         if (balancing_factor_c >= 1)
-            leftRotate(child);
-        rightRotate(parent);
-        return;
+            parent->left_child = leftRotate(child);
+        Tree *grand_parent = parent->parent;
+        parent = rightRotate(parent);
+        return parent;
     }
     else if (balancing_factor_p >= 2)
     {
         if (balancing_factor_c <= -1)
-            rightRotate(child);
-        leftRotate(parent);
-        return;
+        {
+            parent->right_child = rightRotate(child);
+        }
+        parent = leftRotate(parent);
+        if (parent->parent != NULL)
+            return parent;
     }
 
     if (parent->parent != NULL)
-        Balacing(parent, parent->parent);
-    return;
+        parent = Balacing(parent, parent->parent);
+    return parent;
 }
 
 void preOrder(Tree *avl)
 {
     if (avl == NULL)
         return;
-    printf("%d ", avl->value);
+    printf("%d: l%d, r%d \n", avl->value, avl->left_height, avl->right_height);
     preOrder(avl->left_child);
     preOrder(avl->right_child);
 }
