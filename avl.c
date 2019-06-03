@@ -23,6 +23,7 @@ void showTree(Tree *avl);
 Tree *loadTreeFromFile(Tree *arvore, char *file_name);
 int searchValue(Tree *avl, Tree **node, int value, int nivel);
 Tree *removeValue(Tree *avl, int value);
+Tree *sweepTreeFix(Tree *avl, int *signal_balacing);
 
 int main()
 {
@@ -41,9 +42,10 @@ int main()
         printf("2 - Buscar No na Arvore\n");
         printf("3 - Altura da Arvore\n");
         printf("4 - Remover No da Arvore\n");
-        printf("5 - Print In Order\n");
-        printf("6 - Print Pre Order\n");
-        printf("7 - Print Post Order\n");
+        printf("5 - Adicionar No na arvore\n");
+        printf("6 - Print In Order\n");
+        printf("7 - Print Pre Order\n");
+        printf("8 - Print Post Order\n");
         printf("0- Sair\n");
         printf("________________________________________________________________________________\n");
         scanf("%d", &op);
@@ -88,6 +90,7 @@ int main()
         {
             int valor = 0;
             Tree *aux = NULL;
+            int signal = 0; // verifica se ouve um balanceamento
             printf("Valor do No a ser excluido: ");
             scanf("%d", &valor);
             getchar();
@@ -96,25 +99,40 @@ int main()
                 avl = aux;
             printf("Arvore depois da remocao\n");
             showTree(avl);
+            // verifica e corrige a arvore
+            avl = sweepTreeFix(avl, &signal);
+            if (signal == 1)
+            {
+                printf("Depois do balanceamento necessario\n");
+                showTree(avl);
+            }
         }
         else if (op == 5)
+        {
+            int value;
+            printf("Digite algum numero para o indice do no: ");
+            scanf("%d", &value);
+            addNode(avl, value);
+        }
+        else if (op == 6)
         {
             printf("PRINT IN ORDER:\n");
             inOrder(avl);
             printf("\n");
         }
-        else if (op == 6)
+        else if (op == 7)
         {
             printf("PRINT PRE ORDER:\n");
             preOrder(avl);
             printf("\n");
         }
-        else if (op == 7)
+        else if (op == 8)
         {
             printf("PRINT POST ORDER\n");
             postOrder(avl);
             printf("\n");
         }
+
         if (op != 0)
             getchar();
         printf("\e[H\e[2J"); // limpa tela
@@ -135,7 +153,6 @@ Tree *loadTreeFromFile(Tree *avl, char *file_name)
     if (file == NULL)
     {
         printf("arquivo nao encontrado...\n");
-        return NULL;
         exit(-1);
     }
     else
@@ -460,6 +477,7 @@ Tree *removeValue(Tree *avl, int value)
                         avl_aux->parent = NULL;
                     }
                     free(avl);
+
                     return avl_aux;
                 }
                 else
@@ -469,10 +487,11 @@ Tree *removeValue(Tree *avl, int value)
                         avl_aux = avl_aux->left_child;
                         if (avl_aux->left_child == NULL)
                         {
+                            Tree *old_parent_avl_aux = avl_aux->parent;
                             // o no é o sucessor do numero removido
                             avl_aux->left_child = avl->left_child;
-                            // passa o filho do aux para o pai
-                            avl_aux->parent->left_child = avl_aux->right_child;
+                            // passa o filho direito do aux para o pai
+                            old_parent_avl_aux->left_child = avl_aux->right_child;
                             avl_aux->right_child = avl->right_child;
                             if (avl->parent != NULL)
                             {
@@ -552,4 +571,52 @@ Tree *removeValue(Tree *avl, int value)
         printf("Valor não encontrado\n");
         return avl;
     }
+}
+
+Tree *postOrderFix(Tree *avl, int *signal_balacing)
+{
+    // realiza varredura de baixo da arvore ate a raiz
+    // conserta as alturas e realiza rotacoes quando necessario
+    if (avl == NULL)
+        return NULL;
+    postOrderFix(avl->left_child, signal_balacing);
+    postOrderFix(avl->right_child, signal_balacing);
+
+    fixHeight(avl);
+
+    // verifica o balanceamento e realiza as rotacoes necessarias
+    Tree *parent = avl, *child;
+    int balancing_factor_p = parent->right_height - parent->left_height;
+    int balancing_factor_c;
+
+    if (balancing_factor_p <= -2)
+    {
+        *signal_balacing = 1;
+        child = parent->left_child;
+        balancing_factor_c = child->right_height - child->left_height;
+        if (balancing_factor_c >= 1)
+            parent->left_child = leftRotate(child);
+        Tree *grand_parent = parent->parent;
+        parent = rightRotate(parent);
+        return parent;
+    }
+    else if (balancing_factor_p >= 2)
+    {
+        *signal_balacing = 1;
+        child = parent->right_child;
+        balancing_factor_c = child->right_height - child->left_height;
+        if (balancing_factor_c <= -1)
+        {
+            parent->right_child = rightRotate(child);
+        }
+        parent = leftRotate(parent);
+        if (parent->parent != NULL)
+            return parent;
+    }
+    return parent;
+}
+
+Tree *sweepTreeFix(Tree *avl, int *signal_balacing)
+{
+    return postOrderFix(avl, signal_balacing);
 }
