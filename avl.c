@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
+#include <stdbool.h>
 
 struct tree
 {
@@ -13,29 +15,144 @@ struct tree
 } typedef Tree;
 
 Tree *addNode(Tree *avl, int value);
-void preOrder(Tree *avl);
 void inOrder(Tree *avl);
-Tree *Balacing(Tree *child, Tree *parent);
+void preOrder(Tree *avl);
+void postOrder(Tree *avl);
+Tree *balacing(Tree *child, Tree *parent);
+void showTree(Tree *avl);
+Tree *loadTreeFromFile(Tree *arvore, char *file_name);
+int searchValue(Tree *avl, Tree **node, int value, int nivel);
+Tree *removeValue(Tree *avl, int value);
 
 int main()
 {
-    int array[] = {20, 33, 5, 9, 3, 2, 56, 71, 15, 10, 16, 1};
     Tree *avl = NULL;
-    int size = sizeof(array) / sizeof(int);
-    for (int i = 0; i < size; i++)
+    char nome_arquivo[10];
+    int full = 1, nivel_base = 0, nivel = 0, op = 0;
+
+    printf("Escolha um arquivo (presente na pasta avl_scripts): ");
+    scanf("%s", nome_arquivo);
+    avl = loadTreeFromFile(avl, nome_arquivo);
+
+    do
     {
-        avl = addNode(avl, array[i]);
-    }
+        printf("________________________________________________________________________________\n");
+        printf("1 - Mostrar Arvore\n");
+        printf("2 - Buscar No na Arvore\n");
+        printf("3 - Altura da Arvore\n");
+        printf("4 - Remover No da Arvore\n");
+        printf("5 - Print In Order\n");
+        printf("6 - Print Pre Order\n");
+        printf("7 - Print Post Order\n");
+        printf("0- Sair\n");
+        printf("________________________________________________________________________________\n");
+        scanf("%d", &op);
+        getchar();
+
+        if (op == 1)
+        {
+            printf("Arvore:\n");
+            showTree(avl);
+        }
+        else if (op == 2)
+        {
+            int valor = 0;
+            Tree *node = NULL;
+            printf("No para buscar: ");
+            scanf("%d", &valor);
+            getchar();
+
+            nivel = searchValue(avl, &node, valor, nivel_base);
+            if (nivel == 0)
+            {
+                printf("Valor não Encontrado\n");
+            }
+            else
+            {
+                printf("Valor se encontra no nível: %d\n", nivel);
+                if (node->parent != NULL)
+                    printf("Valor do pai: %d\n", node->parent->value);
+                if (node->left_child != NULL)
+                    printf("Valor do filho esq: %d\n", node->left_child->value);
+                if (node->right_child != NULL)
+                    printf("Valor do filho dir: %d\n", node->right_child->value);
+            }
+        }
+        else if (op == 3)
+        {
+            int height = 0;
+            height = (avl->left_height > avl->right_height) ? avl->left_height : avl->right_height;
+            printf("Altura da arvore: %d\n", height);
+        }
+        else if (op == 4)
+        {
+            int valor = 0;
+            printf("Valor do No a ser excluido: ");
+            scanf("%d", &valor);
+            getchar();
+            avl = removeValue(avl, valor);
+            printf("Arvore depois da remocao\n");
+            showTree(avl);
+        }
+        else if (op == 5)
+        {
+            printf("PRINT IN ORDER:\n");
+            inOrder(avl);
+            printf("\n");
+        }
+        else if (op == 6)
+        {
+            printf("PRINT PRE ORDER:\n");
+            preOrder(avl);
+            printf("\n");
+        }
+        else if (op == 7)
+        {
+            printf("PRINT POST ORDER\n");
+            postOrder(avl);
+            printf("\n");
+        }
+        if (op != 0)
+            getchar();
+        printf("\e[H\e[2J"); // limpa tela
+    } while (op != 0);
 
     printf("InOrder: ");
     inOrder(avl);
     printf("\n");
 
-    printf("PreOrder:\n");
+    printf("PreOrder: ");
     preOrder(avl);
     printf("\n");
 
+    showTree(avl);
+
     return 0;
+}
+
+Tree *loadTreeFromFile(Tree *avl, char *file_name)
+{
+    FILE *file;
+    int value;
+    char *path = (char *)malloc(30 * sizeof(char));
+    sprintf(path, "./avl_scripts/%s.txt", file_name);
+
+    file = fopen(path, "r");
+
+    if (file == NULL)
+    {
+        printf("arquivo nao encontrado...\n");
+        return NULL;
+        exit(-1);
+    }
+    else
+    {
+        while (fscanf(file, "%d", &value) != EOF)
+        {
+            avl = addNode(avl, value);
+        }
+    }
+    return avl;
 }
 
 Tree *addNode(Tree *avl, int value)
@@ -66,9 +183,9 @@ Tree *addNode(Tree *avl, int value)
                 // adiciona no
                 aux->right_child = new_node;
                 new_node->parent = aux;
-                aux = Balacing(new_node, aux);
+                aux = balacing(new_node, aux);
                 // se o pai do node que foi balanceado eh nulo,
-                // entao a raiz da arvore eh atualizada
+                // entao a raiz da avl eh atualizada
                 if (aux->parent == NULL)
                     avl = aux;
             }
@@ -80,7 +197,7 @@ Tree *addNode(Tree *avl, int value)
             {
                 aux->left_child = new_node;
                 new_node->parent = aux;
-                aux = Balacing(new_node, aux);
+                aux = balacing(new_node, aux);
                 if (aux->parent == NULL)
                     avl = aux;
             }
@@ -115,14 +232,6 @@ void fixHeight(Tree *child)
     {
         child->right_height = 0;
     }
-
-    // // consertar alturas do pai
-    // left_h = (parent->left_child != NULL) ? parent->left_child->left_height : 0;
-    // right_h = (parent->left_child != NULL) ? parent->left_child->right_height : 0;
-    // parent->left_height = 1 + ((left_h >= right_h) ? left_h : right_h);
-    // left_h = (parent->right_child != NULL) ? parent->right_child->left_height : 0;
-    // right_h = (parent->right_child != NULL) ? parent->right_child->right_height : 0;
-    // parent->right_height = 1 + ((left_h >= right_h) ? left_h : right_h);
 }
 
 Tree *leftRotate(Tree *parent)
@@ -175,7 +284,7 @@ Tree *rightRotate(Tree *parent)
     return new_parent;
 }
 
-Tree *Balacing(Tree *child, Tree *parent)
+Tree *balacing(Tree *child, Tree *parent)
 {
     if (child->value > parent->value)
         parent->right_height++;
@@ -207,7 +316,7 @@ Tree *Balacing(Tree *child, Tree *parent)
     }
 
     if (parent->parent != NULL)
-        parent = Balacing(parent, parent->parent);
+        parent = balacing(parent, parent->parent);
     return parent;
 }
 
@@ -215,7 +324,7 @@ void preOrder(Tree *avl)
 {
     if (avl == NULL)
         return;
-    printf("%d: l%d, r%d \n", avl->value, avl->left_height, avl->right_height);
+    printf("%d, ", avl->value);
     preOrder(avl->left_child);
     preOrder(avl->right_child);
 }
@@ -225,6 +334,228 @@ void inOrder(Tree *avl)
     if (avl == NULL)
         return;
     inOrder(avl->left_child);
-    printf("%d ", avl->value);
+    printf("%d, ", avl->value);
     inOrder(avl->right_child);
+}
+
+void postOrder(Tree *avl)
+{
+    if (avl == NULL)
+        return;
+    postOrder(avl->left_child);
+    printf("%d, ", avl->value);
+    postOrder(avl->right_child);
+}
+
+int showTreeFormated(Tree *avl, int is_left, int offset, int depth, char coordinate[20][255])
+{
+    char val[20];
+    int larg = 5;
+
+    if (!avl)
+        return 0;
+
+    sprintf(val, "[%03d]", avl->value);
+
+    int left = showTreeFormated(avl->left_child, 1, offset, depth + 1, coordinate);
+    int right = showTreeFormated(avl->right_child, 0, offset + left + larg, depth + 1, coordinate);
+    for (int i = 0; i < larg; i++)
+        coordinate[2 * depth][offset + left + i] = val[i];
+
+    if (depth && is_left)
+    {
+
+        for (int i = 0; i < larg + right; i++)
+            coordinate[2 * depth - 1][offset + left + larg / 2 + i] = '-';
+
+        coordinate[2 * depth - 1][offset + left + larg / 2] = '*';
+        coordinate[2 * depth - 1][offset + left + larg + right + larg / 2] = '*';
+    }
+    else if (depth && !is_left)
+    {
+
+        for (int i = 0; i < left + larg; i++)
+            coordinate[2 * depth - 1][offset - larg / 2 + i] = '-';
+
+        coordinate[2 * depth - 1][offset + left + larg / 2] = '*';
+        coordinate[2 * depth - 1][offset - larg / 2 - 1] = '*';
+    }
+
+    return left + larg + right;
+}
+
+void showTree(Tree *avl)
+{
+    char ponto[20][255];
+    for (int i = 0; i < 20; i++)
+        sprintf(ponto[i], "%100s", " ");
+
+    showTreeFormated(avl, 0, 0, 0, ponto);
+
+    for (int i = 0; i < 20; i++)
+        printf("%s\n", ponto[i]);
+}
+
+int searchValue(Tree *avl, Tree **node, int value, int nivel)
+{
+    if (avl != NULL)
+    {
+        if (value > avl->value)
+        {
+            nivel += 1;
+            searchValue(avl->right_child, node, value, nivel);
+        }
+        else if (value < avl->value)
+        {
+            nivel += 1;
+            searchValue(avl->left_child, node, value, nivel);
+        }
+        else
+        {
+            // valor == arvore->valor
+            nivel++;
+            *node = avl; // nó encontrado
+            return nivel;
+        }
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+Tree *removeValue(Tree *avl, int value)
+{
+    if (avl != NULL)
+    {
+        if (value > avl->value)
+        {
+            avl->right_child = removeValue(avl->right_child, value);
+        }
+        else if (value < avl->value)
+        {
+            avl->left_child = removeValue(avl->left_child, value);
+        }
+        else if (value == avl->value)
+        {
+            // value a ser removido, encontrado
+            if (avl->left_child != NULL && avl->right_child != NULL)
+            { // o no possui dois filhos, deve procurar o sucessor mais proximo (tamanho do value)
+                Tree *avl_aux;
+                avl_aux = avl->right_child;
+                if (avl_aux->left_child == NULL)
+                {
+                    if (avl->left_child != NULL)
+                        avl_aux->left_child = avl->left_child;
+                    else
+                        avl_aux->left_child = NULL;
+                    avl_aux->parent->right_child = NULL;
+                    if (avl->parent != NULL)
+                    {
+                        avl_aux->parent = avl->parent;
+                        if (avl->value > avl->parent->value)
+                        {
+                            avl->parent->right_child = avl_aux;
+                        }
+                        else if (avl->value < avl->parent->value)
+                        {
+                            avl->parent->left_child = avl_aux;
+                        }
+                    }
+                    else
+                    {
+                        avl_aux->parent = NULL;
+                    }
+                    free(avl);
+                    return avl_aux;
+                }
+                else
+                {
+                    while (!(avl_aux->left_child == NULL && avl_aux->right_child == NULL))
+                    {
+                        avl_aux = avl_aux->left_child;
+                        if (avl_aux->left_child == NULL && avl_aux->right_child == NULL)
+                        {
+                            // o no é uma folha
+                            avl_aux->left_child = avl->left_child;
+                            avl_aux->right_child = avl->right_child;
+                            avl_aux->parent->left_child = NULL;
+                            if (avl->parent != NULL)
+                            {
+                                avl_aux->parent = avl->parent;
+                                if (avl_aux->value > avl->parent->value)
+                                {
+                                    avl->parent->right_child = avl_aux;
+                                }
+                                else if (avl_aux->value < avl->parent->value)
+                                {
+                                    avl->parent->left_child = avl_aux;
+                                }
+                            }
+                            else
+                            {
+                                avl_aux->parent = NULL;
+                            }
+                            free(avl);
+                            return avl_aux;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (avl->parent != NULL)
+                {
+                    if (value > avl->parent->value)
+                    {
+                        if (avl->right_child != NULL && avl->left_child == NULL)
+                            avl->parent->right_child = avl->right_child;
+                        else if (avl->left_child != NULL && avl->right_child == NULL)
+                            avl->parent->right_child = avl->left_child;
+                        else
+                            avl->parent->right_child = NULL;
+                        free(avl);
+                        return avl->parent->right_child;
+                    }
+                    else if (value < avl->parent->value)
+                    {
+                        if (avl->right_child != NULL && avl->left_child == NULL)
+                            avl->parent->left_child = avl->right_child;
+                        else if (avl->left_child != NULL && avl->right_child == NULL)
+                            avl->parent->left_child = avl->left_child;
+                        else
+                            avl->parent->left_child = NULL;
+                        free(avl);
+                        return avl->parent->left_child;
+                    }
+                }
+                else
+                {
+                    if (avl->left_child != NULL && avl->right_child == NULL)
+                    {
+                        avl->left_child->parent = NULL;
+                        free(avl);
+                        return avl->left_child;
+                    }
+                    else if (avl->right_child != NULL && avl->left_child == NULL)
+                    {
+                        avl->right_child->parent = NULL;
+                        free(avl);
+                        return avl->right_child;
+                    }
+                    else
+                    {
+                        avl = NULL;
+                        free(avl);
+                        return NULL;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        printf("Valor não encontrado\n");
+        return avl;
+    }
 }
