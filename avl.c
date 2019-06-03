@@ -87,10 +87,13 @@ int main()
         else if (op == 4)
         {
             int valor = 0;
+            Tree *aux = NULL;
             printf("Valor do No a ser excluido: ");
             scanf("%d", &valor);
             getchar();
-            avl = removeValue(avl, valor);
+            aux = removeValue(avl, valor);
+            if (aux->parent == NULL)
+                avl = aux;
             printf("Arvore depois da remocao\n");
             showTree(avl);
         }
@@ -116,16 +119,6 @@ int main()
             getchar();
         printf("\e[H\e[2J"); // limpa tela
     } while (op != 0);
-
-    printf("InOrder: ");
-    inOrder(avl);
-    printf("\n");
-
-    printf("PreOrder: ");
-    preOrder(avl);
-    printf("\n");
-
-    showTree(avl);
 
     return 0;
 }
@@ -440,7 +433,7 @@ Tree *removeValue(Tree *avl, int value)
         {
             // value a ser removido, encontrado
             if (avl->left_child != NULL && avl->right_child != NULL)
-            { // o no possui dois filhos, deve procurar o sucessor mais proximo (tamanho do value)
+            { // o no possui dois filhos, deve procurar o sucessor mais proximo
                 Tree *avl_aux;
                 avl_aux = avl->right_child;
                 if (avl_aux->left_child == NULL)
@@ -474,12 +467,13 @@ Tree *removeValue(Tree *avl, int value)
                     while (!(avl_aux->left_child == NULL && avl_aux->right_child == NULL))
                     {
                         avl_aux = avl_aux->left_child;
-                        if (avl_aux->left_child == NULL && avl_aux->right_child == NULL)
+                        if (avl_aux->left_child == NULL)
                         {
-                            // o no é uma folha
+                            // o no é o sucessor do numero removido
                             avl_aux->left_child = avl->left_child;
+                            // passa o filho do aux para o pai
+                            avl_aux->parent->left_child = avl_aux->right_child;
                             avl_aux->right_child = avl->right_child;
-                            avl_aux->parent->left_child = NULL;
                             if (avl->parent != NULL)
                             {
                                 avl_aux->parent = avl->parent;
