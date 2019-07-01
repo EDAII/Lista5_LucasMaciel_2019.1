@@ -1,8 +1,8 @@
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <math.h>
-#include <stdbool.h>
 
 struct tree
 {
@@ -112,7 +112,7 @@ int main()
             int value;
             printf("Digite algum numero para o indice do no: ");
             scanf("%d", &value);
-            addNode(avl, value);
+            avl = addNode(avl, value);
         }
         else if (op == 6)
         {
@@ -197,7 +197,9 @@ Tree *addNode(Tree *avl, int value)
                 // se o pai do node que foi balanceado eh nulo,
                 // entao a raiz da avl eh atualizada
                 if (aux->parent == NULL)
+                {
                     avl = aux;
+                }
             }
         }
         else
@@ -209,7 +211,9 @@ Tree *addNode(Tree *avl, int value)
                 new_node->parent = aux;
                 aux = balacing(new_node, aux);
                 if (aux->parent == NULL)
+                {
                     avl = aux;
+                }
             }
         }
     }
@@ -321,8 +325,7 @@ Tree *balacing(Tree *child, Tree *parent)
             parent->right_child = rightRotate(child);
         }
         parent = leftRotate(parent);
-        if (parent->parent != NULL)
-            return parent;
+        return parent;
     }
 
     if (parent->parent != NULL)
